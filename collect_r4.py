@@ -27,7 +27,7 @@ R4_ROUTE_ID = "37810"
 BAY4_ID = "12361"       # departing UBC
 UNLOADING_ID = "12600"  # arriving at UBC
 
-CSV_PATH = "r4_ubc_live_log.csv"
+CSV_PATH = "/app/data/r4_ubc_live_log.csv"
 POLL_SECONDS = 60  # how often to check the live feed
 
 FIELDNAMES = [
