@@ -1,8 +1,9 @@
-# R4 / UBC Bus Delay Collector
+# Translink R4 UBC Bus Delay Collector
 
 Tracks live delays for the TransLink R4 bus at UBC Exchange, using
 TransLink's GTFS-Realtime feed. Runs continuously on Railway, appending
-one row per observed update to a CSV on a persistent volume.
+one row per observed update to a CSV on a persistent volume. 
+The R4 bus at UBC is infamous for having the longest line. As a UBC student who commutes, I want to know which is the best time to get on the bus to go as it is often delayed due to traffics, huge amount of students, etc.
 
 ## Files
 
@@ -76,7 +77,7 @@ run it from.
 - Rows with a blank delay mean the feed reported the trip but hadn't
   attached timing info yet — these are dropped before analysis.
 
-## History / lessons learned
+## Lessons learned while working on the project
 
 - The collector originally wrote to a relative path
   (`r4_ubc_live_log.csv`), which isn't guaranteed to persist across
