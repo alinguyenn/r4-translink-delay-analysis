@@ -1,9 +1,8 @@
-# Translink R4 UBC Bus Delay Collector
+# R4 / UBC Bus Delay Collector
 
 Tracks live delays for the TransLink R4 bus at UBC Exchange, using
 TransLink's GTFS-Realtime feed. Runs continuously on Railway, appending
-one row per observed update to a CSV on a persistent volume. 
-The R4 bus at UBC is infamous for having the longest line. As a UBC student who commutes, I want to know which is the best time to get on the bus to go as it is often delayed due to traffics, huge amount of students, etc.
+one row per observed update to a CSV on a persistent volume.
 
 ## Files
 
@@ -68,16 +67,19 @@ run it from.
 ## Data notes
 
 - Each row is one poll of the live feed, not one bus. A single bus near
-  a stop gets polled repeatedly (once per minute) until it leaves, so
-  `analyze_r4.py` collapses each `trip_id` down to its **last** recorded
-  delay before analyzing.
+  a stop gets polled repeatedly (once per minute) until it leaves.
+  `trip_id` is a *scheduled* trip that repeats every day, so a "run" is
+  a `trip_id` plus a gap rule: a gap of more than 3 hours starts a new
+  run. `analyze_r4.py` keeps each run's **last** recorded delay.
+- All timestamps are converted from UTC to America/Vancouver before
+  grouping by hour or weekday.
 - Some early predictions in TransLink's feed have been observed 10-30
   minutes off, self-correcting over the next few polls. Using each
-  trip's last observation (above) avoids counting these as real delays.
+  run's last observation (above) avoids counting these as real delays.
 - Rows with a blank delay mean the feed reported the trip but hadn't
   attached timing info yet — these are dropped before analysis.
 
-## Lessons learned while working on the project
+## History / lessons learned
 
 - The collector originally wrote to a relative path
   (`r4_ubc_live_log.csv`), which isn't guaranteed to persist across
@@ -87,3 +89,13 @@ run it from.
 - The built-in status/download pages initially had no cache-control
   headers, which could show a stale row count in a browser. Fixed by
   adding `Cache-Control: no-store` to both routes.
+
+## Predictive model
+
+`R4_delay_analysis.ipynb` (Step 10) trains logistic regression and random
+forest models to predict whether a run will be more than 5 minutes late,
+using hour of day, weekday and weekend only. It is tested on later weeks
+(time-ordered split, no shuffling) and checked against shuffled labels.
+Result: it ranks risky hours well above chance (mean ROC-AUC about 0.83),
+but only 26 runs were late, so it is a ranking of riskier hours, not a
+forecast for a single bus.
