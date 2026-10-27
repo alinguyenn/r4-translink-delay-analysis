@@ -79,16 +79,41 @@ run it from.
 - Rows with a blank delay mean the feed reported the trip but hadn't
   attached timing info yet — these are dropped before analysis.
 
-## History / lessons learned
+## What I learned from doing this project
 
-- The collector originally wrote to a relative path
+- **Persistence:** The collector originally wrote to a relative path
   (`r4_ubc_live_log.csv`), which isn't guaranteed to persist across
   container restarts. Fixed by writing to `/app/data/` (the mounted
   volume) instead. **Always verify** persistence directly (row count
   before/after a deliberate redeploy) rather than assuming a fix worked.
-- The built-in status/download pages initially had no cache-control
-  headers, which could show a stale row count in a browser. Fixed by
-  adding `Cache-Control: no-store` to both routes.
+- **Caching:** The built-in status/download pages initially had no
+  cache-control headers, which could show a stale row count in a browser.
+  Fixed by adding `Cache-Control: no-store` to both routes.
+- **Test assumptions against the data:** I assumed the R4 arrives at Bay 1, but the static schedule showed no R4 trip stops there; arrivals use “Unloading Only” (12600). The live feed never reports that stop, so all collected data is for departures from Bay 4 (12361).
+- **Check data types when a join returns nothing:** `route_id` loaded as
+  text and `stop_id` as a number, so filters matched nothing. Printing
+  the dtypes found it.
+- **Read the status code, not just the error:** a confusing protobuf
+  "Wire format was corrupt" error was really an HTML 403 from the API
+  gateway, which rejected Python's default User-Agent.
+- **IDs repeat:** `trip_id` repeats every day, so grouping by it merged
+  different days. A run is now a `trip_id` plus a gap of more than 3
+  hours. Times are also converted from UTC to Vancouver time before
+  grouping by hour and weekday. Both fixes changed earlier results.
+- **Blank is not zero:** about half the feed rows have no delay value.
+  They are dropped, because treating them as 0 would fake on-time buses.
+- **Be careful with outliers:** one run showed a 71.9-minute delay that
+  stayed frozen for 8 polls before the trip vanished from the feed. I
+  could not tell a real disruption from a feed glitch, so I kept it and
+  reported results with and without it.
+- **Small samples:** hourly and weekday results rest on few runs (for
+  example, 7pm is 48 runs), so I report them as things to watch, not
+  conclusions. My first model score (ROC-AUC 0.83, from 26 late runs)
+  dropped to about 0.77 with more data (35 late runs).
+- **Validate models on later data:** I used time-ordered folds, not
+  random splits, and compared against shuffled labels and the base rate.
+- **Gaps in collection happen:** the collector was offline Oct 20 to 25
+  when the hosting trial ran out. I documented the gap rather than not addressing it.
 
 ## Predictive model
 
